@@ -5,7 +5,7 @@ This repository contains the configuration used for programming the D1 Mini usin
 
 ## Major parts
 * D1 Mini
-* 12V (or something else) water pump
+* 12V (or something else) water pump [I used this one](https://www.alibaba.com/product-detail/DC-12V-mini-micro-water-pump_60633545565.html)
 * Flow meter [I used this one](https://www.digmesa.com/de/product-details/flow-sensor-fhksc/)
 * Water proof housing
 * 5.0 V and 3.3 V voltage regulator (for example L7805CV and L7833)
