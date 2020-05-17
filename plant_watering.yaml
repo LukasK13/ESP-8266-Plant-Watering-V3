@@ -1,0 +1,103 @@
+esphome:
+  name: plant_watering
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret ssid
+  password: !secret wifi_pass
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Plant-Watering"
+    password: !secret ap_pass
+
+captive_portal:
+
+# Enable logging
+logger:
+#  baud_rate: 0
+  level: WARN
+
+# Enable Home Assistant API
+api:
+  password: !secret api_pass
+
+ota:
+  password: !secret ota_pass
+
+web_server:
+  port: 80
+
+switch:
+  - platform: gpio
+    pin: D5
+    name: "Water Pump"
+    icon: "mdi:water-pump"
+    id: "water_pump"
+    on_turn_off:
+      then:
+        - delay: 1s
+        - lambda: id(water_flow) = 0;
+    on_turn_on:
+      then:
+        - lambda: id(water_flow) = 0;
+
+sensor:
+  - platform: pulse_counter
+    pin: D6
+    name: "Soil Moisture"
+    update_interval: 60s
+    filters:
+      - lambda: return x / 60.0 * 32.0;
+    unit_of_measurement: "Hz"
+  - platform: ultrasonic
+    trigger_pin: D1
+    echo_pin: D2
+    name: "Water Level"
+    id: water_level
+    icon: "mdi:tape-measure"
+    unit_of_measurement: "m"
+    update_interval: 1s
+  - platform: template
+    name: "Water Flow"
+    id: water_flow_sensor
+    icon: "mdi:water"
+    lambda: return id(water_flow);
+    update_interval: never
+    unit_of_measurement: "ml"
+  - platform: homeassistant
+    name: "Volume Target"
+    internal: True
+    id: volume_target
+    entity_id: input_number.watering_target_volume
+
+binary_sensor:
+  - platform: gpio
+    pin: D7
+    name: "Water Flow Binary"
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(water_flow) += 19.0 / 40.0;
+            if (id(volume_target).state <= id(water_flow)) {
+              id(water_pump).turn_off();
+            }
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: 'return id(water_flow_sensor).state != id(water_flow);'
+          then:
+            - sensor.template.publish:
+                id: water_flow_sensor
+                state: !lambda 'return id(water_flow);'
+
+globals:
+  - id: water_flow
+    type: float
+    restore_value: no
+    initial_value: '0.0'
